@@ -1,0 +1,5 @@
+interface:
+  display_name: "Plan Work"
+  short_description: "Grill, plan to GitHub issues, launch the orchestrator"
+policy:
+  allow_implicit_invocation: false
