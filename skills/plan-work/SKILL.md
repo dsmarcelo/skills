@@ -8,10 +8,12 @@ disable-model-invocation: true
 
 This thread is the **planner**, the first stage of a four-role workflow:
 
-1. **Planner** (this thread, gpt-6.1-sol, medium): interviews the user, writes the plan to GitHub.
-2. **Scout** (gpt-6-luna, medium): child task this thread delegates to look up facts in the code.
-3. **Orchestrator** (Opus 5.5, medium, a new top-level thread): executes the plan with implementers (Sonnet 5.5) and reviewers (gpt-6.1-sol).
-4. **Reviewer**: checks every task against the issue you write.
+1. **Planner** (this thread, always gpt-6.1-sol, medium): interviews the user and writes the plan to GitHub.
+2. **Scout** (always gpt-6-luna, medium): explores the codebase, searches files, and summarizes findings.
+3. **Orchestrator and builder**: default to gpt-6.1-sol (medium orchestrator, low builder); the user may select Claude models instead (Opus 5.5 low orchestrator, Sonnet 5.5 medium builder).
+4. **Reviewer** (always gpt-6-luna, high): independently runs tests and reviews each task against the issue.
+
+Ask which model profile to use during the interview. The planner and reviewer are fixed to gpt-6.1-sol and gpt-6-luna respectively; users can choose the default GPT profile, the Claude profile, or available custom models for the orchestrator and builder. Record the selection in the plan so later threads use it.
 
 Everything after this thread starts from a clean context and reads only GitHub. The issues you publish are the whole contract: implementers build against them, the reviewer judges against them, the orchestrator schedules from them. If something was decided in this conversation and is not in an issue, it is lost.
 
@@ -23,7 +25,8 @@ Check these facts yourself before the first question, and stop with a clear mess
 
 - `gh auth status` succeeds and `git remote -v` points at the GitHub repo.
 - The workflow labels exist. Create any that are missing (commands in `issue-tracker.md`).
-- Call `orchestrator_capabilities` on the `t3-code` MCP server. Confirm the four models in `roles.md` are available and note each provider instance id and effort option id. If gpt-6.1-sol cannot run child tasks, stop: the reviewer must be a different model family from the implementer, and there is no fallback.
+- This thread runs on gpt-6.1-sol at medium effort. The planner role is fixed; if this thread is on another model or effort, stop and ask the user to switch before planning.
+- Call `orchestrator_capabilities` on the `t3-code` MCP server. Confirm gpt-6.1-sol and gpt-6-luna are available for the fixed planner, scout, and reviewer roles, and confirm the selected orchestrator and builder models. Note provider instance ids and effort option ids. If a selected model is unavailable, explain that and offer the other supported profile; never silently substitute.
 - This thread runs in the default interaction mode, not plan mode. A thread launched from here cannot have broader runtime or interaction modes than this one, so the orchestrator would be unable to edit code. If you are in plan mode, ask the user to switch before going further.
 
 ## Phase 1: Start the scout early
@@ -109,6 +112,7 @@ Use the templates below and the commands in `issue-tracker.md`.
 4. Self-check, then fix anything that fails:
    - Every acceptance criterion is observable (a command result, a visible behavior), not a quality word like "clean" or "robust".
    - Every Verify command is one the scout confirmed exists in this repo.
+   - Record the model profile and selected orchestrator, builder, and reviewer model/effort in the `agent-workflow` block and Decisions Log.
    - No dependency cycles, and tasks whose Touches overlap are ordered by an edge.
    - The tasks together cover the goal and touch no non-goal.
 5. Show the user the parent issue link and the list of sub-issues.
@@ -122,6 +126,10 @@ Title: `Plan: <title>`
 slug: <kebab-case>
 base: <base branch>
 integration: work/<parent-number>-<slug>
+model-profile: <GPT|Claude|custom>
+orchestrator: <model> (<effort>)
+builder: <model> (<effort>)
+reviewer: gpt-6-luna (high)
 -->
 
 ## Problem Statement
@@ -153,6 +161,7 @@ integration: work/<parent-number>-<slug>
 
 ## Decisions Log
 - <each decision settled in the interview, one line, so later agents know it was a choice and not an accident>
+- Model profile: <GPT|Claude|custom>; orchestrator <model> (<effort>); builder <model> (<effort>); reviewer gpt-6-luna (high).
 
 ## Tasks
 <filled in after the sub-issues exist: - [ ] #<n> <title>>
@@ -193,6 +202,6 @@ Title: `<short descriptive name>`
 
 Ask the user whether to launch the orchestrator now. Launching starts a new top-level thread, which T3 Code only allows when the user has asked for it, so wait for a clear yes.
 
-On yes, call `t3_thread_launch` with the orchestrator template in `roles.md`: Opus 5.5 with effort set to `medium` (never `low`), a new worktree based on the plan's base branch, and the integration branch name from the parent issue. Then give the user the new thread as `[title](t3-thread://v1/<threadId>)` and stop. Do not monitor the orchestrator from here; it reports in its own thread and on the parent issue.
+On yes, call `t3_thread_launch` with the orchestrator template in `roles.md`, using the model and effort recorded in the parent issue, a new worktree based on the plan's base branch, and the integration branch name from the parent issue. Then give the user the new thread as `[title](t3-thread://v1/<threadId>)` and stop. Do not monitor the orchestrator from here; it reports in its own thread and on the parent issue.
 
-If the user says no, tell them how to start it later: a new thread on Opus 5.5 at medium effort, in a worktree on the integration branch, with the message `$orchestrate-plan #<parent number>`.
+If the user says no, tell them how to start it later: a new thread using the orchestrator model and effort recorded in the parent issue, in a worktree on the integration branch, with the message `$orchestrate-plan #<parent number>`.

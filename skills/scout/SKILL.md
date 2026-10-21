@@ -1,6 +1,6 @@
 ---
 name: scout
-description: Read-only codebase reconnaissance for the plan-work workflow. Use when delegated a question about where something lives, how a feature works, which modules a change would touch, or what commands build and test the project. Returns notes with file:line pointers as its final message. Never edits anything.
+description: Read-only codebase reconnaissance for the plan-work workflow. Runs as gpt-6-luna at medium effort. Use for codebase exploration, file search, and summarization, including questions about where something lives, how a feature works, which modules a change would touch, or what commands build and test the project. Returns notes with file:line pointers as its final message. Never edits anything.
 ---
 
 # Scout

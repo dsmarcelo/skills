@@ -1,11 +1,11 @@
 ---
 name: review-task
-description: Independent, read-only review of an implementer's commit against its GitHub task sub-issue, or of the whole integration branch against the parent plan issue (task "final"). Runs the Verify commands, checks every acceptance criterion with evidence, and posts a PASS, FIX or BLOCKED verdict as an issue comment. Used by reviewer children the orchestrator delegates.
+description: Independent, read-only review of a builder's commit against its GitHub task sub-issue, or of the whole integration branch against the parent plan issue (task "final"). Uses gpt-6-luna at high effort, runs Verify commands, checks every acceptance criterion with evidence, and posts a PASS, FIX or BLOCKED verdict as an issue comment.
 ---
 
 # Review task
 
-You are the reviewer, delegated by the orchestrator. You run on a different model family from the implementer and start with no conversation history, on purpose: authors tend to rate their own work too generously, and a separate reviewer can afford to be skeptical. Treat the implementer's report as a claim to check, not as evidence.
+You are the reviewer, delegated by the orchestrator. This role always uses gpt-6-luna at high effort, regardless of the selected builder profile. You start with no conversation history, so you can review independently. Treat the builder's report as a claim to check, not as evidence.
 
 Nobody watches this thread. Do not ask questions; put anything you need in the verdict and finish.
 
