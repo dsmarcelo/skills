@@ -9,11 +9,11 @@ disable-model-invocation: true
 This thread is the **planner**, the first stage of a four-role workflow:
 
 1. **Planner** (this thread, always gpt-6.1-sol, medium): interviews the user and writes the plan to GitHub.
-2. **Scout** (always gpt-6-luna, medium): explores the codebase, searches files, and summarizes findings.
-3. **Orchestrator and builder**: default to gpt-6.1-sol (medium orchestrator, low builder); the user may select Claude models instead (Opus 5.5 low orchestrator, Sonnet 5.5 medium builder).
-4. **Reviewer** (always gpt-6-luna, high): independently runs tests and reviews each task against the issue.
+2. **Scout**: explores the codebase, searches files, and summarizes findings.
+3. **Orchestrator and builder**: coordinate and implement the plan.
+4. **Reviewer**: independently runs tests and reviews each task against the issue.
 
-Ask which model profile to use during the interview. The planner and reviewer are fixed to gpt-6.1-sol and gpt-6-luna respectively; users can choose the default GPT profile, the Claude profile, or available custom models for the orchestrator and builder. Record the selection in the plan so later threads use it.
+Read `docs/agents/models.md` for all role model and effort selections. Record the resolved selections in the plan; explicit user overrides take precedence.
 
 Everything after this thread starts from a clean context and reads only GitHub. The issues you publish are the whole contract: implementers build against them, the reviewer judges against them, the orchestrator schedules from them. If something was decided in this conversation and is not in an issue, it is lost.
 
@@ -25,8 +25,8 @@ Check these facts yourself before the first question, and stop with a clear mess
 
 - `gh auth status` succeeds and `git remote -v` points at the GitHub repo.
 - The workflow labels exist. Create any that are missing (commands in `issue-tracker.md`).
-- This thread runs on gpt-6.1-sol at medium effort. The planner role is fixed; if this thread is on another model or effort, stop and ask the user to switch before planning.
-- Call `orchestrator_capabilities` on the `t3-code` MCP server. Confirm gpt-6.1-sol and gpt-6-luna are available for the fixed planner, scout, and reviewer roles, and confirm the selected orchestrator and builder models. Note provider instance ids and effort option ids. If a selected model is unavailable, explain that and offer the other supported profile; never silently substitute.
+- This thread must use the planner model and effort in `docs/agents/models.md`; if it does not, ask the user to switch before planning.
+- Call `orchestrator_capabilities` on the `t3-code` MCP server. Confirm every configured role model and effort is available; note provider instance ids and effort option ids. Report unavailable selections without silently substituting.
 - This thread runs in the default interaction mode, not plan mode. A thread launched from here cannot have broader runtime or interaction modes than this one, so the orchestrator would be unable to edit code. If you are in plan mode, ask the user to switch before going further.
 
 ## Phase 1: Start the scout early
@@ -112,7 +112,7 @@ Use the templates below and the commands in `issue-tracker.md`.
 4. Self-check, then fix anything that fails:
    - Every acceptance criterion is observable (a command result, a visible behavior), not a quality word like "clean" or "robust".
    - Every Verify command is one the scout confirmed exists in this repo.
-   - Record the model profile and selected orchestrator, builder, and reviewer model/effort in the `agent-workflow` block and Decisions Log.
+   - Record the resolved planner, scout, orchestrator, builder, and reviewer model/effort in the `agent-workflow` block and Decisions Log.
    - No dependency cycles, and tasks whose Touches overlap are ordered by an edge.
    - The tasks together cover the goal and touch no non-goal.
 5. Show the user the parent issue link and the list of sub-issues.
@@ -126,10 +126,11 @@ Title: `Plan: <title>`
 slug: <kebab-case>
 base: <base branch>
 integration: work/<parent-number>-<slug>
-model-profile: <GPT|Claude|custom>
+planner: <model> (<effort>)
+scout: <model> (<effort>)
 orchestrator: <model> (<effort>)
 builder: <model> (<effort>)
-reviewer: gpt-6-luna (high)
+reviewer: <model> (<effort>)
 -->
 
 ## Problem Statement
@@ -161,7 +162,7 @@ reviewer: gpt-6-luna (high)
 
 ## Decisions Log
 - <each decision settled in the interview, one line, so later agents know it was a choice and not an accident>
-- Model profile: <GPT|Claude|custom>; orchestrator <model> (<effort>); builder <model> (<effort>); reviewer gpt-6-luna (high).
+- Models: planner <model> (<effort>); scout <model> (<effort>); orchestrator <model> (<effort>); builder <model> (<effort>); reviewer <model> (<effort>).
 
 ## Tasks
 <filled in after the sub-issues exist: - [ ] #<n> <title>>

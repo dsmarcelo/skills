@@ -1,20 +1,14 @@
 # Roles, models and T3 Code templates
 
-This file defines the model profiles and is the one place to change a model, an effort level, or how an agent is started. Ask which profile to use; default to GPT when the user does not specify one. A user may choose another available model for configurable roles, subject to the fixed planner, scout, and reviewer roles below. Always check `orchestrator_capabilities` and use its exact model and option ids.
+Model and effort selections for every role live in [`models.md`](models.md), the single configuration file. Read it before launching agents, resolve IDs against capabilities, and record the resolved settings for every role in the parent issue. Use the recorded settings for the lifetime of the plan. Explicit user overrides take precedence; unavailable selections must be reported without substitution.
 
-## Roles
-
-| Role | Skill | Default model | Default effort | Claude profile | Runs as | Started by | Writes |
-|---|---|---|---|---|---|---|---|
-| Planner | `plan-work` | gpt-6.1-sol | medium | Always gpt-6.1-sol (fixed) | main thread (you start it) | you | GitHub parent issue and task sub-issues |
-| Scout / codebase exploration / file search / summarization | `scout` | gpt-6-luna | medium | gpt-6-luna (fixed) | child task | planner | nothing (notes come back as its result) |
-| Orchestrator | `orchestrate-plan` | gpt-6.1-sol | medium | claude-opus-5-5, low | new top-level thread in its own worktree | planner | labels, status comment, merges on the integration branch |
-| Builder / implementer / test author | `implement-task` | gpt-6.1-sol | low | claude-sonnet-5-5, medium | child task, own worktree | orchestrator | commits on `task/<n>-r<round>`, report comment |
-| Tests and code reviewer | `review-task` | gpt-6-luna | high | Always gpt-6-luna (fixed) | child task, own worktree | orchestrator | verdict comment |
-
-The planner is always gpt-6.1-sol and the reviewer is always gpt-6-luna, regardless of profile or user preference. The default GPT profile uses gpt-6.1-sol for the orchestrator and builder. The Claude profile changes only those two roles to Opus 5.5 (low) and Sonnet 5.5 (medium). The reviewer remains GPT-6 Luna (high), so reviews stay on the GPT family even when Claude builds the change. The builder writes and runs tests; the reviewer independently runs verification and reviews the code.
-
-At the start of planning, ask whether to use the default GPT profile, the Claude profile, or custom available models for the configurable orchestrator and builder roles. The planner, scout, and reviewer stay fixed as listed above. Record the selected profile and resolved model/effort for each role in the parent issue's Decisions Log and `agent-workflow` block, and include them in the orchestrator launch message. Later stages must follow that recorded configuration. If a requested model is unavailable, explain which role cannot be started and offer the supported profile options; do not silently substitute.
+| Role | Skill | Runs as | Started by |
+|---|---|---|---|
+| Planner | `plan-work` | main thread | user |
+| Scout | `scout` | child task | planner |
+| Orchestrator | `orchestrate-plan` | top-level thread in its own worktree | planner |
+| Builder | `implement-task` | child task in its own worktree | orchestrator |
+| Reviewer | `review-task` | child task in its own worktree | orchestrator |
 
 ## How T3 Code starts agents
 
@@ -34,22 +28,22 @@ All of this goes through the `t3-code` MCP server that T3 Code injects into ever
 | Claude | `effort` | `low` / `medium` |
 | Codex | `reasoningEffort` | `low` / `medium` / `high` |
 
-These ids come from T3 Code's own adapter tests. `orchestrator_capabilities` is the authority if they change. GPT profile effort defaults are medium for planner, scout, and orchestrator, low for builder, and high for reviewer. Claude profile effort defaults are low for Opus and medium for Sonnet.
+These ids come from T3 Code's own adapter tests. `orchestrator_capabilities` is the authority if they change. Use the configured effort in `models.md`.
 
 ## Templates
 
 Replace `<...>`. Keep prompts to pointers; do not paste issue content into them.
 
-### Scout (planner -> `delegate_task`; fixed model)
+### Scout (planner -> `delegate_task`; configured model)
 
 ```json
 {
   "task": "Use the scout skill.\nQuestion: <one narrow question>\nInclude project commands: <yes|no>",
   "title": "Scout: <topic>",
   "target": {
-    "providerInstanceId": "<codex instance id>",
-    "model": "gpt-6-luna",
-    "options": [{ "id": "reasoningEffort", "value": "medium" }]
+    "providerInstanceId": "<scout provider instance id>",
+    "model": "<configured scout model>",
+    "options": [{ "id": "<scout effort option id>", "value": "<scout effort>" }]
   },
   "role": "research",
   "mode": "async",
@@ -62,7 +56,7 @@ Replace `<...>`. Keep prompts to pointers; do not paste issue content into them.
 ```json
 {
   "title": "Orchestrate: <plan title>",
-  "message": "Use the orchestrate-plan skill.\nPlan: #<parent>\nBase branch: <base>\nIntegration branch: work/<parent>-<slug>\nModel profile: <GPT|Claude|custom>\nOrchestrator: <model>, <effort>\nBuilder: <model>, <effort>\nReviewer: gpt-6-luna, high",
+  "message": "Use the orchestrate-plan skill.\nPlan: #<parent>\nBase branch: <base>\nIntegration branch: work/<parent>-<slug>\nOrchestrator: <model>, <effort>\nBuilder: <model>, <effort>\nReviewer: <model>, <effort>",
   "modelSelection": {
     "instanceId": "<selected provider instance id>",
     "model": "<selected orchestrator model>",
@@ -118,8 +112,8 @@ and `clientRequestId: "impl-<task>-r<n>"`. For a merge conflict, replace the las
   "title": "Review #<task> r<n>",
   "target": {
     "providerInstanceId": "<GPT instance id>",
-    "model": "gpt-6-luna",
-    "options": [{ "id": "reasoningEffort", "value": "high" }]
+    "model": "<configured reviewer model>",
+    "options": [{ "id": "<reviewer effort option id>", "value": "<reviewer effort>" }]
   },
   "role": "review",
   "isolation": "worktree",

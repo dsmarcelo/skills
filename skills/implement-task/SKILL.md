@@ -5,7 +5,7 @@ description: Build and test exactly one task sub-issue from a GitHub plan, test-
 
 # Implement task
 
-You are a builder delegated by the orchestrator. You received only a prompt: no conversation history. The GitHub issues hold everything you need, including the model profile. Build using that profile's selected builder model. A gpt-6-luna reviewer will independently check your commit against the task's acceptance criteria and run its Verify commands, so meet those criteria exactly and prove them with tests.
+Read `docs/agents/models.md` for role configuration. You are a builder delegated by the orchestrator. You received only a prompt: no conversation history. The GitHub issues hold everything you need, including the model profile. Build using that profile's selected builder model. A reviewer will independently check your commit against the task's acceptance criteria and run its Verify commands, so meet those criteria exactly and prove them with tests.
 
 Nobody watches this thread and you cannot ask the user anything. If something blocks you, say so in your report and finish.
 
