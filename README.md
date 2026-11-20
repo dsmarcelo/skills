@@ -1,74 +1,33 @@
-# Plan, orchestrate, review (for T3 Code)
+# Skills
 
-A multi-agent coding workflow for [T3 Code](https://github.com/pingdotgg/t3code), using models from OpenAI and Anthropic. The planner interviews you, publishes the plan as GitHub issues, and launches the orchestrator in a new thread. Configure all role models in [docs/agents/models.md](docs/agents/models.md).
+Personal agent skills, project-agnostic: each project's `AGENTS.md` supplies its docs, issue conventions and verify commands.
 
-```
-you ── $plan-work ──> PLANNER thread (gpt-6.1-sol, medium; fixed)
-                        │  delegate_task ──> SCOUT (Haiku 5.5, medium): code search and notes
-                        │  grilling rounds with you until the design tree is resolved
-                        │  task breakdown, approved by you
-                        │  GitHub: parent issue + task sub-issues + blocking edges
-                        │  t3_thread_launch (after your yes)
-                        v
-                      ORCHESTRATOR thread (Opus 5.5, low)
-                        │  for each ready task (parallel only if Touches don't overlap, max 3):
-                        │    delegate_task ──> BUILDER (Sonnet 5.5, medium)
-                        │    delegate_task ──> REVIEWER (gpt-6.1-terra, medium): tests and code review
-                        │         PASS: merge into work/<parent>-<slug>
-                        │         FIX:  new builder round from its last SHA (max 3)
-                        │  final review of the whole branch vs the parent issue
-                        v
-                      asks you before pushing and opening the PR (Closes #parent, #tasks)
-```
+## Workflow
+
+`/planning` -> `/implement-plan <issue>`
+
+- `planning`: explores the repo, interviews you with `AskUserQuestion`, publishes one GitHub issue with a task checklist. No code.
+- `implement-plan`: builds the issue in one session, test-first, verifies, reviews the diff once.
 
 ## Contents
 
 | Path | What it is |
 |---|---|
-| `skills/plan-work/` | Entry point. Planner: grilling interview, task breakdown, GitHub issues, launches the orchestrator. User-invoked only. |
-| `skills/scout/` | Read-only code reconnaissance; returns notes the planner posts on the parent issue. |
-| `skills/orchestrate-plan/` | Orchestrator: schedules tasks, tracks state with labels, merges passing work, final review. |
-| `skills/implement-task/` | Builder: one task, test-first, own worktree, reports a SHA. |
-| `skills/review-task/` | Reviewer: runs Verify, checks every criterion with evidence, posts PASS / FIX / BLOCKED. |
-| `docs/agents/models.md` | Model and effort configuration for every role. |
-| `docs/agents/roles.md` | Effort option ids and `delegate_task` / `t3_thread_launch` templates. |
-| `docs/agents/issue-tracker.md` | `gh` commands for issues, sub-issues, blocking edges, labels, comment markers. |
+| `skills/ask-sonner/` | Guide to Sonner, the React toast library — install and wire up the Toaster, pick the right toast() call, promi |
+| `skills/break-ui/` | Try to break a piece of UI by feeding it worst-case data — long names, unbreakable emails, one-letter names, m |
+| `skills/frontend-design/` | Guidance for distinctive, intentional visual design when building new UI or reshaping an existing one. Helps w |
+| `skills/implement-plan/` | Implement a GitHub plan issue (from planning) in one session, test-first, then verify and review once. |
+| `skills/mobile-native/` | Make a web app feel native on a phone — the small CSS and meta-tag fixes that separate "a website in a browser |
+| `skills/pick-ui-library/` | Pick the right library for a given frontend task from a curated, opinionated list — numbers, OTP inputs, chart |
+| `skills/planning/` | Interview the user about a feature or change, then publish one GitHub issue with a task checklist. Planning on |
+| `skills/prototype/` | Build multiple genuinely different versions of a UI piece you describe, rendered behind a visual picker so you |
+| `skills/ui-design/` | Use when the users asks for a ui/frontend change or generation. |
+| `skills/web-design-guidelines/` | Review UI code for Web Interface Guidelines compliance. Use when asked to "review my UI", "check accessibility |
 
 ## Install
 
-In the target repo:
+Copy into `~/.agents/skills/` and symlink into `~/.claude/skills/`:
 
 ```sh
-mkdir -p .agents/skills docs
-cp -r skills/* .agents/skills/
-cp -r docs/agents docs/
-ln -s ../.agents/skills .claude/skills   # Claude reads .claude/skills; Codex reads .agents/skills
+cp -r skills/<name> ~/.agents/skills/ && ln -sfn ../../.agents/skills/<name> ~/.claude/skills/<name>
 ```
-
-If `.claude/skills` already exists, copy or link `scout`, `orchestrate-plan`, and `implement-task` into it as well, so the configured Claude roles can use them. In T3 Code, run **Restart agent session** after adding skills, then type `$` in the composer to confirm each one is listed for its provider.
-
-Requirements:
-
-- T3 Code with V2 orchestration (the `t3-code` MCP tools), and the providers signed in for the configured models.
-- `gh` signed in on the machine running the T3 Code server (2.94+ for `--parent`; older versions use the API fallback in `issue-tracker.md`).
-- A clean working tree on the base branch.
-
-## Use
-
-1. In T3 Code, start a new thread on **gpt-6.1-sol, medium** (the planner is fixed), in the **default** interaction mode (not plan mode: the orchestrator can never have broader modes than the planner) and the runtime mode you want the whole run to use.
-2. Type `$plan-work` followed by what you want built.
-3. Answer the grilling rounds. Each question comes with a recommended answer; "yes" accepts it.
-4. Approve the task breakdown. The planner publishes the issues and shows you the links.
-5. Say yes to launch the orchestrator. The plan records the configured model and effort for each role.
-6. When it asks, approve the push and the pull request.
-
-## Notes
-
-- Edit `docs/agents/models.md` to select models and efforts for any role. The parent issue records the resolved settings for each plan.
-- Delegated children get only their prompt, so all shared context lives in GitHub issues and comments, not in local files. `.work/` folders from the earlier draft are gone.
-- Task issues stay open with `agent:passed` until the PR merges, so nothing is closed for work that has not shipped.
-- These are drafts. Run one small, real task through the whole loop first and tighten the wording where the agents stumble.
-
-## Credits
-
-The grilling method in `plan-work`, the vertical-slice rules, the issue templates and the GitHub tracker conventions are adapted from [mattpocock/skills](https://github.com/mattpocock/skills), MIT License, Copyright (c) 2026 Matt Pocock.

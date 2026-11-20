@@ -1,3 +1,0 @@
-interface:
-  display_name: "Orchestrate Plan"
-  short_description: "Run a GitHub plan issue with implementers and reviewers"
